@@ -1,4 +1,5 @@
 import io
+import shutil
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -42,6 +43,30 @@ class TestCleanPptx(unittest.TestCase):
             rc = clean_pptx.main([missing_name])
         self.assertEqual(rc, 2)
         self.assertIn("Error: file not found:", stderr.getvalue())
+
+    def test_main_cleans_sample_pptx(self):
+        fixture = Path(__file__).parent / "fixtures" / "sample.pptx"
+        if not fixture.exists():
+            self.skipTest("sample fixture is not available")
+
+        try:
+            from pptx import Presentation
+        except ImportError:
+            self.skipTest("python-pptx not installed")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_input = Path(tmpdir) / "sample.pptx"
+            shutil.copyfile(fixture, tmp_input)
+            rc = clean_pptx.main([str(tmp_input), "--skip-pdf"])
+            self.assertEqual(rc, 0)
+
+            cleaned_pptx, _ = clean_pptx.derive_output_paths(tmp_input)
+            self.assertTrue(cleaned_pptx.exists())
+            self.assertGreater(cleaned_pptx.stat().st_size, 0)
+
+            original_slides = len(Presentation(str(tmp_input)).slides)
+            cleaned_slides = len(Presentation(str(cleaned_pptx)).slides)
+            self.assertEqual(cleaned_slides, original_slides)
 
 
 if __name__ == "__main__":
