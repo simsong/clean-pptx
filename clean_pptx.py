@@ -7,8 +7,9 @@ import argparse
 import io
 import subprocess
 import sys
+import warnings
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable
 
 STANDARD_FONT_MAP = {
     "Calibri": "Arial",
@@ -21,7 +22,7 @@ STANDARD_FONT_MAP = {
 DEFAULT_STANDARD_FONT = "Arial"
 
 
-def derive_output_paths(input_path: Path) -> Tuple[Path, Path]:
+def derive_output_paths(input_path: Path) -> tuple[Path, Path]:
     stem = input_path.stem
     cleaned_pptx = input_path.with_name(f"{stem}-cleaned.pptx")
     cleaned_pdf = input_path.with_name(f"{stem}-cleaned.pdf")
@@ -54,6 +55,7 @@ def _copy_text_frame(source, dest) -> None:
 
 
 def _reencode_to_jpeg(image_blob: bytes, quality: int = 90) -> io.BytesIO:
+    """Convert an image blob to JPEG bytes at the requested quality."""
     from PIL import Image
 
     with Image.open(io.BytesIO(image_blob)) as img:
@@ -74,6 +76,7 @@ def _iter_slide_shapes(slide, group_shape_type) -> Iterable:
 
 
 def create_cleaned_pptx(input_path: Path, output_path: Path) -> None:
+    """Rebuild a source PPTX into a cleaned PPTX with standard fonts and JPEG images."""
     try:
         from pptx import Presentation
         from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -126,6 +129,11 @@ def create_cleaned_pptx(input_path: Path, output_path: Path) -> None:
                 continue
 
             # Unsupported shape types are replaced by empty rectangles to preserve position.
+            warnings.warn(
+                f"Unsupported shape type {shape.shape_type!r} replaced with rectangle.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
             dest_slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.RECTANGLE, left, top, width, height)
 
     cleaned.save(str(output_path))
@@ -136,6 +144,7 @@ def _escape_applescript_string(path: Path) -> str:
 
 
 def render_pdf_with_powerpoint(cleaned_pptx_path: Path, output_pdf_path: Path) -> None:
+    """Render a PPTX to PDF by driving Microsoft PowerPoint via AppleScript on macOS."""
     if sys.platform != "darwin":
         raise RuntimeError("PDF rendering requires macOS with Microsoft PowerPoint installed.")
 

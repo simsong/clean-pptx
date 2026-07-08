@@ -25,6 +25,13 @@ class TestCleanPptx(unittest.TestCase):
         self.assertEqual(rc, 2)
         self.assertIn("Error: input file must have a .pptx extension.", stderr.getvalue())
 
+    def test_main_rejects_missing_pptx_file(self):
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            rc = clean_pptx.main(["/tmp/definitely-missing-file.pptx"])
+        self.assertEqual(rc, 2)
+        self.assertIn("Error: file not found:", stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
