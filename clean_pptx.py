@@ -55,7 +55,7 @@ def _copy_text_frame(source, dest) -> None:
 
 
 def _reencode_to_jpeg(image_blob: bytes, quality: int = 90) -> io.BytesIO:
-    """Convert an image blob to JPEG bytes at the requested quality."""
+    """Convert an image blob to JPEG and return a BytesIO object positioned at start."""
     from PIL import Image
 
     with Image.open(io.BytesIO(image_blob)) as img:
@@ -132,7 +132,6 @@ def create_cleaned_pptx(input_path: Path, output_path: Path) -> None:
             warnings.warn(
                 f"Unsupported shape type {shape.shape_type!r} replaced with rectangle.",
                 RuntimeWarning,
-                stacklevel=2,
             )
             dest_slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.RECTANGLE, left, top, width, height)
 
@@ -205,7 +204,7 @@ def main(argv: list[str] | None = None) -> int:
         create_cleaned_pptx(input_path, cleaned_pptx)
         if not args.skip_pdf:
             render_pdf_with_powerpoint(cleaned_pptx, cleaned_pdf)
-    except Exception as exc:
+    except (RuntimeError, OSError, ValueError) as exc:
         print(f"Error ({type(exc).__name__}): {exc}", file=sys.stderr)
         return 1
 
