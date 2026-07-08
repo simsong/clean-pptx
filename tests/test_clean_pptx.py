@@ -2,6 +2,7 @@ import io
 import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
+from uuid import uuid4
 
 import clean_pptx
 
@@ -26,9 +27,10 @@ class TestCleanPptx(unittest.TestCase):
         self.assertIn("Error: input file must have a .pptx extension.", stderr.getvalue())
 
     def test_main_rejects_missing_pptx_file(self):
+        missing_name = f"missing-{uuid4()}.pptx"
         stderr = io.StringIO()
         with redirect_stderr(stderr):
-            rc = clean_pptx.main(["/tmp/definitely-missing-file.pptx"])
+            rc = clean_pptx.main([missing_name])
         self.assertEqual(rc, 2)
         self.assertIn("Error: file not found:", stderr.getvalue())
 

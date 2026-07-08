@@ -139,28 +139,36 @@ def create_cleaned_pptx(input_path: Path, output_path: Path) -> None:
     cleaned.save(str(output_path))
 
 
-def _escape_applescript_string(path: Path) -> str:
-    return str(path).replace('\\', '\\\\').replace('"', '\\"')
-
-
 def render_pdf_with_powerpoint(cleaned_pptx_path: Path, output_pdf_path: Path) -> None:
     """Render a PPTX to PDF by driving Microsoft PowerPoint via AppleScript on macOS."""
     if sys.platform != "darwin":
         raise RuntimeError("PDF rendering requires macOS with Microsoft PowerPoint installed.")
 
-    pptx_arg = _escape_applescript_string(cleaned_pptx_path.resolve())
-    pdf_arg = _escape_applescript_string(output_pdf_path.resolve())
+    applescript = """
+    on run argv
+        set pptxPath to item 1 of argv
+        set pdfPath to item 2 of argv
+        tell application "Microsoft PowerPoint"
+            activate
+            set thePresentation to open POSIX file pptxPath
+            save as thePresentation file name POSIX file pdfPath file format save as PDF
+            close thePresentation saving no
+        end tell
+    end run
+    """
 
-    applescript = f'''
-    tell application "Microsoft PowerPoint"
-        activate
-        set thePresentation to open POSIX file "{pptx_arg}"
-        save as thePresentation file name POSIX file "{pdf_arg}" file format save as PDF
-        close thePresentation saving no
-    end tell
-    '''
-
-    subprocess.run(["osascript", "-e", applescript], check=True)
+    try:
+        subprocess.run(
+            ["osascript", "-e", applescript, str(cleaned_pptx_path.resolve()), str(output_pdf_path.resolve())],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        details = (exc.stderr or exc.stdout or "").strip()
+        raise RuntimeError(
+            f"PowerPoint PDF rendering failed. Ensure Microsoft PowerPoint is installed and scriptable. {details}"
+        ) from exc
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -198,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.skip_pdf:
             render_pdf_with_powerpoint(cleaned_pptx, cleaned_pdf)
     except Exception as exc:
-        print(f"Error: {exc}", file=sys.stderr)
+        print(f"Error ({type(exc).__name__}): {exc}", file=sys.stderr)
         return 1
 
     print(f"Created cleaned deck: {cleaned_pptx}")
