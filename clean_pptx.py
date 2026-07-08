@@ -131,7 +131,7 @@ def create_cleaned_pptx(input_path: Path, output_path: Path) -> None:
             # Unsupported shape types are replaced by empty rectangles to preserve position.
             warnings.warn(
                 f"Unsupported shape type {shape.shape_type!r} replaced with rectangle.",
-                RuntimeWarning,
+                UserWarning,
             )
             dest_slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.RECTANGLE, left, top, width, height)
 
