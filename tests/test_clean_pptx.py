@@ -64,8 +64,10 @@ class TestCleanPptx(unittest.TestCase):
             self.assertTrue(cleaned_pptx.exists())
             self.assertGreater(cleaned_pptx.stat().st_size, 0)
 
-            original_slides = len(Presentation(str(tmp_input)).slides)
-            cleaned_slides = len(Presentation(str(cleaned_pptx)).slides)
+            original_presentation = Presentation(str(tmp_input))
+            cleaned_presentation = Presentation(str(cleaned_pptx))
+            original_slides = len(original_presentation.slides)
+            cleaned_slides = len(cleaned_presentation.slides)
             self.assertEqual(cleaned_slides, original_slides)
 
 
