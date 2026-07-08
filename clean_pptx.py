@@ -64,9 +64,9 @@ def _reencode_to_jpeg(image_blob: bytes, quality: int = 90) -> io.BytesIO:
         return output
 
 
-def _iter_slide_shapes(slide) -> Iterable:
+def _iter_slide_shapes(slide, group_shape_type) -> Iterable:
     for shape in slide.shapes:
-        if shape.shape_type == 6:  # group
+        if shape.shape_type == group_shape_type:
             for subshape in shape.shapes:
                 yield subshape
         else:
@@ -76,6 +76,7 @@ def _iter_slide_shapes(slide) -> Iterable:
 def create_cleaned_pptx(input_path: Path, output_path: Path) -> None:
     try:
         from pptx import Presentation
+        from pptx.enum.shapes import MSO_SHAPE_TYPE
         from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
     except ImportError as exc:
         raise RuntimeError(
@@ -95,18 +96,21 @@ def create_cleaned_pptx(input_path: Path, output_path: Path) -> None:
     for src_slide in source.slides:
         dest_slide = cleaned.slides.add_slide(blank_layout)
 
-        for shape in _iter_slide_shapes(src_slide):
+        for shape in _iter_slide_shapes(src_slide, MSO_SHAPE_TYPE.GROUP):
             left = shape.left
             top = shape.top
             width = shape.width
             height = shape.height
 
-            if shape.shape_type == 13:  # picture
+            if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 jpeg_data = _reencode_to_jpeg(shape.image.blob, quality=90)
                 dest_slide.shapes.add_picture(jpeg_data, left, top, width=width, height=height)
                 continue
 
-            if shape.shape_type == 1 and getattr(shape, "auto_shape_type", None) is not None:
+            if (
+                shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE
+                and getattr(shape, "auto_shape_type", None) is not None
+            ):
                 try:
                     auto_shape = MSO_AUTO_SHAPE_TYPE(shape.auto_shape_type)
                 except ValueError:

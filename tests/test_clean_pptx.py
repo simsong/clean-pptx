@@ -1,4 +1,6 @@
+import io
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 
 import clean_pptx
@@ -17,8 +19,11 @@ class TestCleanPptx(unittest.TestCase):
         self.assertTrue(args.skip_pdf)
 
     def test_main_rejects_non_pptx_extension(self):
-        rc = clean_pptx.main(["file.txt"])
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            rc = clean_pptx.main(["file.txt"])
         self.assertEqual(rc, 2)
+        self.assertIn("Error: input file must have a .pptx extension.", stderr.getvalue())
 
 
 if __name__ == "__main__":
