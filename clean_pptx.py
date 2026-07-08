@@ -30,12 +30,14 @@ def derive_output_paths(input_path: Path) -> tuple[Path, Path]:
 
 
 def _standard_font_name(name: str | None) -> str:
+    """Map incoming font names to standard fonts, defaulting to Arial."""
     if not name:
         return DEFAULT_STANDARD_FONT
     return STANDARD_FONT_MAP.get(name, DEFAULT_STANDARD_FONT)
 
 
 def _copy_text_frame(source, dest) -> None:
+    """Copy paragraph/run text and basic formatting from source text frame to destination."""
     dest.clear()
     for idx, src_paragraph in enumerate(source.paragraphs):
         paragraph = dest.paragraphs[0] if idx == 0 else dest.add_paragraph()
@@ -67,6 +69,7 @@ def _reencode_to_jpeg(image_blob: bytes, quality: int = 90) -> io.BytesIO:
 
 
 def _iter_slide_shapes(slide, group_shape_type) -> Iterable:
+    """Yield slide shapes, flattening one level of grouped shapes."""
     for shape in slide.shapes:
         if shape.shape_type == group_shape_type:
             for subshape in shape.shapes:
